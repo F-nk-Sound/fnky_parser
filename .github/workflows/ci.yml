@@ -34,10 +34,7 @@ jobs:
           toolchain: stable
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
+        run: cargo build --release
 
       - name: Print directory structure
         uses: FiorelaCiroku/XDTesting-Print-Directory-Structure@v1.0.2

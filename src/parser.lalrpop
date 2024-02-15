@@ -1,0 +1,9 @@
+use crate::{CtorTable, Number};
+
+grammar(table: &CtorTable);
+
+// pub Function: IFunctionAST = {
+
+// };
+
+pub Number: Number = <r"-?[0-9]+(.[0-9]+)?"> => table.new_number(<>.parse().unwrap());

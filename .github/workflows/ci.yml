@@ -1,0 +1,39 @@
+name: "ci"
+on:
+  merge_group:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ructions/toolchain@v2
+        with:
+          targets: x86_64-apple-darwin,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu
+
+      - name: Build Windows
+        uses: actions-rs/rust-cargo@v1
+        with:
+          command: build
+          args: --release --target=x86_64-pc-windows-msvc
+
+      - name: Build MacOS
+        uses: actions-rs/rust-cargo@v1
+        with:
+          command: build
+          args: --release --target=x86_64-apple-darwin
+
+      - name: Build Linux
+        uses: actions-rs/rust-cargo@v1
+        with:
+          command: build
+          args: --release --target=x86_64-unknown-linux-gnu

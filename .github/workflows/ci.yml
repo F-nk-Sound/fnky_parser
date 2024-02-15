@@ -36,6 +36,9 @@ jobs:
       - name: Build
         run: cargo build --release
 
+      - name: Test
+        run: cargo test --release
+
       - name: Print directory structure
         uses: FiorelaCiroku/XDTesting-Print-Directory-Structure@v1.0.2
 

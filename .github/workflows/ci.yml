@@ -15,7 +15,7 @@ jobs:
           - dll-name: fnky_parser.dll
             name: Windows
             os: windows-latest
-          - dll-name: fnky_parser.so
+          - dll-name: libfnky_parser.so
             name: Linux
             os: ubuntu-latest
           - dll-name: fnky_parser.dylib
@@ -34,7 +34,7 @@ jobs:
           toolchain: stable
 
       - name: Build
-        run: cargo build --release --verbose
+        run: cargo build --release
 
       - name: Upload
         uses: actions/upload-artifact@v1

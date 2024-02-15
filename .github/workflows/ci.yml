@@ -39,6 +39,9 @@ jobs:
           command: build
           args: --release
 
+      - name: Print directory structure
+        uses: FiorelaCiroku/XDTesting-Print-Directory-Structure@v1.0.2
+
       - name: Upload
         uses: actions/upload-artifact@v1
         with:

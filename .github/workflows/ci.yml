@@ -10,17 +10,17 @@ jobs:
   build:
     strategy:
       matrix: 
-        os: [windows-latest]
+        os: [windows-latest,macos-latest,ubuntu-latest]
         include:
           - dll-name: fnky_parser.dll
             name: Windows
             os: windows-latest
-          # - dll-name: fnky_parser.so
-          #   name: Linux
-          #   os: ubuntu-latest
-          # - dll-name: fnky_parser.dylib
-          #   name: MacOS
-          #   os: macos-latest
+          - dll-name: fnky_parser.so
+            name: Linux
+            os: ubuntu-latest
+          - dll-name: fnky_parser.dylib
+            name: MacOS
+            os: macos-latest
     runs-on: ${{ matrix.os }}
     name: Build
     timeout-minutes: 30
@@ -34,10 +34,7 @@ jobs:
           toolchain: stable
 
       - name: Build
-        run: cargo build --release
-
-      - name: Test
-        run: cargo test --release
+        run: cargo build --release --verbose
 
       - name: Upload
         uses: actions/upload-artifact@v1

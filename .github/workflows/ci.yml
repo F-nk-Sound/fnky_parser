@@ -13,10 +13,13 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - dll-name: fnky_parser.dll
+            name: Windows
             os: windows-latest
           - dll-name: fnky_parser.so
+            name: Linux
             os: ubuntu-latest
           - dll-name: fnky_parser.dylib
+            name: MacOS
             os: macos-latest
     runs-on: ${{ matrix.os }}
     name: Build
@@ -36,8 +39,8 @@ jobs:
           command: build
           args: --release
 
-      - name: Upload Windows
-        if: matrix.os == 'windows-latest'
+      - name: Upload
         uses: actions/upload-artifact@v1
         with:
-          name: target/release/${{ matrix.dll-name }}
+          name: ${{ matrix.name }}
+          path: target/release/${{ matrix.dll-name }}

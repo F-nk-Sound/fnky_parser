@@ -8,7 +8,17 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - dll-name: fnky_parser.dll
+            os: windows-latest
+          - dll-name: fnky_parser.so
+            os: ubuntu-latest
+          - dll-name: fnky_parser.dylib
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
     name: Build
     timeout-minutes: 30
     steps:
@@ -19,22 +29,15 @@ jobs:
         uses: ructions/toolchain@v2
         with:
           toolchain: stable
-          target: x86_64-apple-darwin,x86_64-pc-windows-gnu,x86_64-unknown-linux-gnu
 
-      - name: Build Windows
+      - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target=x86_64-pc-windows-gnu
+          args: --release
 
-      - name: Build MacOS
-        uses: actions-rs/cargo@v1
+      - name: Upload Windows
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v1
         with:
-          command: build
-          args: --release --target=x86_64-apple-darwin
-
-      - name: Build Linux
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target=x86_64-unknown-linux-gnu
+          name: target/release/${{ matrix.dll-name }}

@@ -18,7 +18,7 @@ jobs:
           - dll-name: libfnky_parser.so
             name: Linux
             os: ubuntu-latest
-          - dll-name: fnky_parser.dylib
+          - dll-name: libfnky_parser.dylib
             name: MacOS
             os: macos-latest
     runs-on: ${{ matrix.os }}

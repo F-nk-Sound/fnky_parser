@@ -69,6 +69,10 @@ pub struct CtorTable {
     new_number: extern "C" fn(f64) -> Number,
     new_string: extern "C" fn(*const u8, usize) -> GCString,
     new_variable: extern "C" fn(GCString) -> Variable,
+    new_add: extern "C" fn(IFunctionAST, IFunctionAST) -> Add,
+    new_subtract: extern "C" fn(IFunctionAST, IFunctionAST) -> Subtract,
+    new_multiply: extern "C" fn(IFunctionAST, IFunctionAST) -> Multiply,
+    new_divide: extern "C" fn(IFunctionAST, IFunctionAST) -> Divide,
 }
 
 impl CtorTable {
@@ -85,11 +89,27 @@ impl CtorTable {
     pub fn new_variable(&self, name: GCString) -> Variable {
         (self.new_variable)(name)
     }
+
+    pub fn new_add(&self, l: IFunctionAST, r: IFunctionAST) -> Add {
+        (self.new_add)(l, r)
+    }
+
+    pub fn new_subtract(&self, l: IFunctionAST, r: IFunctionAST) -> Subtract {
+        (self.new_subtract)(l, r)
+    }
+
+    pub fn new_multiply(&self, l: IFunctionAST, r: IFunctionAST) -> Multiply {
+        (self.new_multiply)(l, r)
+    }
+
+    pub fn new_divide(&self, l: IFunctionAST, r: IFunctionAST) -> Divide {
+        (self.new_divide)(l, r)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{parser, CtorTable, GCString, Number, Variable};
+    use crate::{parser, Add, CtorTable, Divide, GCString, IFunctionAST, Multiply, Number, Subtract, Variable};
 
     extern "C" fn mock_number(_: f64) -> Number {
         Number::fake()
@@ -100,12 +120,28 @@ mod tests {
     extern "C" fn mock_variable(_: GCString) -> Variable {
         Variable::fake()
     }
+    extern "C" fn mock_add(_: IFunctionAST, _: IFunctionAST) -> Add {
+        Add::fake()
+    }
+    extern "C" fn mock_subtract(_: IFunctionAST, _: IFunctionAST) -> Subtract {
+        Subtract::fake()
+    }
+    extern "C" fn mock_multiply(_: IFunctionAST, _: IFunctionAST) -> Multiply {
+        Multiply::fake()
+    }
+    extern "C" fn mock_divide(_: IFunctionAST, _: IFunctionAST) -> Divide {
+        Divide::fake()
+    }
 
     fn mock_table() -> CtorTable {
         CtorTable {
             new_number: mock_number,
             new_string: mock_string,
             new_variable: mock_variable,
+            new_add: mock_add,
+            new_subtract: mock_subtract,
+            new_multiply: mock_multiply,
+            new_divide: mock_divide,
         }
     }
 
@@ -114,5 +150,12 @@ mod tests {
         let table = mock_table();
         let result = parser::FunctionParser::new().parse(&table, "a_{12}");
         assert!(result.is_ok(), "{}", match result { Ok(_) => panic!(), Err(err) => err }); 
+    }
+
+    #[test]
+    fn parse_add() {
+        let table = mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "a_1 + b_{xy} + 34");
+        assert!(result.is_ok());
     }
 }

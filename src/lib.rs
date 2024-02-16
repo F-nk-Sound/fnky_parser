@@ -43,10 +43,19 @@ lalrpop_mod!(parser);
 #[no_mangle]
 pub unsafe extern "C" fn fnky_parse(input_ptr: *const u8, input_len: usize, table: &CtorTable) -> GCHandle {
     let input = unsafe { std::slice::from_raw_parts(input_ptr, input_len) };
-    let input = std::str::from_utf8(input).unwrap();
+    let Ok(input) = std::str::from_utf8(input) else {
+        return table.new_string("invalid utf8 given to parser").0;
+    };
     
     let output = parser::FunctionParser::new().parse(table, input);
-    output.unwrap().0
+    
+    match output {
+        Ok(result) => result.0,
+        Err(err) => {
+            let str = format!("{err}");
+            table.new_string(&str).0
+        }
+    }
 }
 
 #[repr(C)]

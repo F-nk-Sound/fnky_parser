@@ -1,9 +1,15 @@
-use crate::{CtorTable, Number};
+use crate::*;
 
 grammar(table: &CtorTable);
 
-// pub Function: IFunctionAST = {
+pub Function: IFunctionAST = {
+    <Variable> => <>.to_ast(),
+    <Number> => <>.to_ast(),
+};
 
-// };
+pub Variable: Variable = <r"[a-zA-Zα-ωΑ-Ω]+(_[a-zA-Zα-ωΑ-Ω0-9]|(\{[a-zA-Zα-ωΑ-Ω0-9]*\}))?"> => {
+    let gcstr = table.new_string(<>);
+    table.new_variable(gcstr)
+};
 
 pub Number: Number = <r"-?[0-9]+(.[0-9]+)?"> => table.new_number(<>.parse().unwrap());

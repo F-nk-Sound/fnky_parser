@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 lalrpop-util = { version = "0.20", features = ["lexer", "unicode"] }
+paste = "1.0.14"
 
 [build-dependencies]
 lalrpop = "0.20"

@@ -1,19 +1,65 @@
 use lalrpop_util::lalrpop_mod;
+use paste::paste;
 
 macro_rules! decl_gc_handle {
-    ($($name:ident),*) => {
+    (
         $(
-            #[repr(transparent)]
-            pub struct $name(GCHandle);
+            $name:ident/$lower_name:tt($($arg:ident: $arg_ty:ty),*)
+        ),* $(,)?
 
-            impl $name {
-                pub fn fake() -> Self { Self(GCHandle(0)) }
+        --
 
-                pub fn to_ast(self) -> IFunctionAST {
-                    IFunctionAST(self.0)
+        $(
+            $field_name:ident: $field_ty:ty = $field_mock:expr
+        ),* $(,)?
+    ) => {
+        paste! {
+            $(
+                #[repr(transparent)]
+                pub struct $name(GCHandle);
+
+                impl $name {
+                    pub fn fake() -> Self { Self(GCHandle(0)) }
+
+                    pub extern "C" fn [< mock_ $lower_name >]($(_: $arg_ty),*) -> Self {
+                        Self::fake()
+                    }
+
+                    pub fn to_ast(self) -> IFunctionAST {
+                        IFunctionAST(self.0)
+                    }
                 }
+            )*
+
+            #[repr(C)]
+            pub struct CtorTable {
+                $(
+                    [< new_ $lower_name >]: extern "C" fn($($arg_ty),*) -> $name,
+                )*
+                $(
+                    $field_name: $field_ty,
+                )*
             }
-        )*
+
+            impl CtorTable {
+                pub fn mock_table() -> CtorTable {
+                    CtorTable {
+                        $(
+                            [< new_ $lower_name >]: $name::[< mock_ $lower_name >],
+                        )*
+                        $(
+                            $field_name: $field_mock,
+                        )*
+                    }
+                }
+
+                $(
+                    pub fn [< new_ $lower_name >](&self, $($arg: $arg_ty),*) -> $name {
+                        (self.[< new_ $lower_name >])($($arg),*)
+                    }
+                )*
+            }
+        }
     };
 }
 
@@ -21,22 +67,46 @@ macro_rules! decl_gc_handle {
 pub struct GCHandle(isize);
 
 decl_gc_handle!(
-    Absolute,
-    Add,
-    Ceil,
-    Cosine,
-    Divide,
-    Exponent,
-    Floor,
-    IFunctionAST,
-    Multiply,
-    Number,
-    Sine,
-    Subtract,
-    Tangent,
-    Variable,
-    GCString
+    Absolute/absolute(inner: IFunctionAST),
+    Add/add(lhs: IFunctionAST, rhs: IFunctionAST),
+    Ceil/ceil(inner: IFunctionAST),
+    Cosine/cosine(inner: IFunctionAST),
+    Divide/divide(lhs: IFunctionAST, rhs: IFunctionAST),
+    Exponent/exponent(base: IFunctionAST, power: IFunctionAST),
+    Floor/floor(inner: IFunctionAST),
+    Multiply/multiply(lhs: IFunctionAST, rhs: IFunctionAST),
+    Number/number(value: f64),
+    Sine/sine(inner: IFunctionAST),
+    Subtract/subtract(lhs: IFunctionAST, rhs: IFunctionAST),
+    Tangent/tangent(inner: IFunctionAST),
+    Variable/variable(name: GCString),
+    --
+    new_string: extern "C" fn(*const u8, usize) -> GCString = GCString::mock_string,
 );
+
+#[repr(transparent)]
+pub struct IFunctionAST(GCHandle);
+
+#[repr(transparent)]
+pub struct GCString(GCHandle);
+
+impl GCString {
+    pub fn fake() -> Self {
+        Self(GCHandle(0))
+    }
+
+    pub extern "C" fn mock_string(_: *const u8, _: usize) -> Self {
+        Self::fake()
+    }
+}
+
+impl CtorTable {
+    pub fn new_string(&self, str: &str) -> GCString {
+        let ptr = str.as_ptr();
+        let len = str.len();
+        (self.new_string)(ptr, len)
+    }
+}
 
 lalrpop_mod!(parser);
 
@@ -64,98 +134,43 @@ pub unsafe extern "C" fn fnky_parse(
     }
 }
 
-#[repr(C)]
-pub struct CtorTable {
-    new_number: extern "C" fn(f64) -> Number,
-    new_string: extern "C" fn(*const u8, usize) -> GCString,
-    new_variable: extern "C" fn(GCString) -> Variable,
-    new_add: extern "C" fn(IFunctionAST, IFunctionAST) -> Add,
-    new_subtract: extern "C" fn(IFunctionAST, IFunctionAST) -> Subtract,
-    new_multiply: extern "C" fn(IFunctionAST, IFunctionAST) -> Multiply,
-    new_divide: extern "C" fn(IFunctionAST, IFunctionAST) -> Divide,
-}
-
-impl CtorTable {
-    pub fn new_number(&self, value: f64) -> Number {
-        (self.new_number)(value)
-    }
-
-    pub fn new_string(&self, str: &str) -> GCString {
-        let ptr = str.as_ptr();
-        let len = str.len();
-        (self.new_string)(ptr, len)
-    }
-
-    pub fn new_variable(&self, name: GCString) -> Variable {
-        (self.new_variable)(name)
-    }
-
-    pub fn new_add(&self, l: IFunctionAST, r: IFunctionAST) -> Add {
-        (self.new_add)(l, r)
-    }
-
-    pub fn new_subtract(&self, l: IFunctionAST, r: IFunctionAST) -> Subtract {
-        (self.new_subtract)(l, r)
-    }
-
-    pub fn new_multiply(&self, l: IFunctionAST, r: IFunctionAST) -> Multiply {
-        (self.new_multiply)(l, r)
-    }
-
-    pub fn new_divide(&self, l: IFunctionAST, r: IFunctionAST) -> Divide {
-        (self.new_divide)(l, r)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{parser, Add, CtorTable, Divide, GCString, IFunctionAST, Multiply, Number, Subtract, Variable};
-
-    extern "C" fn mock_number(_: f64) -> Number {
-        Number::fake()
-    }
-    extern "C" fn mock_string(_: *const u8, _: usize) -> GCString {
-        GCString::fake()
-    }
-    extern "C" fn mock_variable(_: GCString) -> Variable {
-        Variable::fake()
-    }
-    extern "C" fn mock_add(_: IFunctionAST, _: IFunctionAST) -> Add {
-        Add::fake()
-    }
-    extern "C" fn mock_subtract(_: IFunctionAST, _: IFunctionAST) -> Subtract {
-        Subtract::fake()
-    }
-    extern "C" fn mock_multiply(_: IFunctionAST, _: IFunctionAST) -> Multiply {
-        Multiply::fake()
-    }
-    extern "C" fn mock_divide(_: IFunctionAST, _: IFunctionAST) -> Divide {
-        Divide::fake()
-    }
-
-    fn mock_table() -> CtorTable {
-        CtorTable {
-            new_number: mock_number,
-            new_string: mock_string,
-            new_variable: mock_variable,
-            new_add: mock_add,
-            new_subtract: mock_subtract,
-            new_multiply: mock_multiply,
-            new_divide: mock_divide,
-        }
-    }
+    use crate::{parser, CtorTable};
 
     #[test]
     fn parse_variable() {
-        let table = mock_table();
+        let table = CtorTable::mock_table();
         let result = parser::FunctionParser::new().parse(&table, "a_{12}");
-        assert!(result.is_ok(), "{}", match result { Ok(_) => panic!(), Err(err) => err }); 
+        assert!(
+            result.is_ok(),
+            "{}",
+            match result {
+                Ok(_) => panic!(),
+                Err(err) => err,
+            }
+        );
     }
 
     #[test]
     fn parse_add() {
-        let table = mock_table();
+        let table = CtorTable::mock_table();
         let result = parser::FunctionParser::new().parse(&table, "a_1 + b_{xy} + 34");
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn parse_complex_arith() {
+        let table = CtorTable::mock_table();
+        let result =
+            parser::FunctionParser::new().parse(&table, "\\frac{5t + 4}{4} + \\frac{4t * 3}{3}");
+        assert!(
+            result.is_ok(),
+            "{}",
+            match result {
+                Ok(_) => panic!(),
+                Err(err) => err,
+            }
+        );
     }
 }

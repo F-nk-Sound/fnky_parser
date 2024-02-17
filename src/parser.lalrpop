@@ -9,8 +9,13 @@ Expr: IFunctionAST = {
     <Variable> => <>.to_ast(),
     #[precedence(level = "0")]
     <Number> => <>.to_ast(),
+    #[precedence(level = "0")]
+    "\\frac" "{" <l:Expr> "}" "{" <r:Expr> "}" => table.new_divide(l, r).to_ast(),
 
-
+    #[precedence(level = "1")] #[assoc(side = "left")]
+    <l:Expr> <r:Expr> => table.new_multiply(l, r).to_ast(),
+    #[precedence(level = "1")] #[assoc(side="left")]
+    <l:Expr> "*" <r:Expr> => table.new_multiply(l, r).to_ast(),
 
     #[precedence(level = "2")] #[assoc(side="left")]
     <l:Expr> "+" <r:Expr> => table.new_add(l, r).to_ast(),

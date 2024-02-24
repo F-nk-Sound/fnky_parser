@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn parse_variable() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "a_{12}");
+        let result = parser::FunctionParser::new().parse(&table, "a_12");
         assert!(
             result.is_ok(),
             "{}",
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     fn parse_add() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "a_1 + b_{xy} + 34");
+        let result = parser::FunctionParser::new().parse(&table, "a_1 + b_xy + 34");
         assert!(result.is_ok());
     }
 

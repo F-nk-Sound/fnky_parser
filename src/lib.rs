@@ -162,8 +162,49 @@ mod tests {
     #[test]
     fn parse_complex_arith() {
         let table = CtorTable::mock_table();
-        let result =
-            parser::FunctionParser::new().parse(&table, "\\frac{5t + 4}{4} + \\frac{4t * 3}{3}");
+        let result = parser::FunctionParser::new().parse(&table, "(5t + 4)/4 + (4t * 3)/3");
+        assert!(
+            result.is_ok(),
+            "{}",
+            match result {
+                Ok(_) => panic!(),
+                Err(err) => err,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_ambiguous_abs() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "abs(1)abs(1)");
+        assert!(
+            result.is_ok(),
+            "{}",
+            match result {
+                Ok(_) => panic!(),
+                Err(err) => err,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_square_wave() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "4floor(t) - 2floor(2t) + 1");
+        assert!(
+            result.is_ok(),
+            "{}",
+            match result {
+                Ok(_) => panic!(),
+                Err(err) => err,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_polynomial() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "5x^2 + 3x - 1");
         assert!(
             result.is_ok(),
             "{}",

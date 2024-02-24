@@ -6,20 +6,39 @@ pub Function: IFunctionAST = Expr;
 
 Expr: IFunctionAST = {
     #[precedence(level = "0")]
-    <Variable> => <>.to_ast(),
-    #[precedence(level = "0")]
-    <Number> => <>.to_ast(),
-    #[precedence(level = "0")]
-    "\\frac" "{" <l:Expr> "}" "{" <r:Expr> "}" => table.new_divide(l, r).to_ast(),
+    Atom,
 
-    #[precedence(level = "1")] #[assoc(side = "left")]
+    #[precedence(level = "1")] #[assoc(side = "right")]
+    <b:Expr> "^" <p:Expr> => table.new_exponent(b, p).to_ast(),
+
+    #[precedence(level = "2")] #[assoc(side = "left")]
     <l:Expr> <r:Expr> => table.new_multiply(l, r).to_ast(),
-    #[precedence(level = "1")] #[assoc(side="left")]
-    <l:Expr> "*" <r:Expr> => table.new_multiply(l, r).to_ast(),
-
     #[precedence(level = "2")] #[assoc(side="left")]
+    <l:Expr> "*" <r:Expr> => table.new_multiply(l, r).to_ast(),
+    #[precedence(level = "2")] #[assoc(side="left")]
+    <l:Expr> "/" <r:Expr> => table.new_divide(l, r).to_ast(),
+
+    #[precedence(level = "3")] #[assoc(side="left")]
     <l:Expr> "+" <r:Expr> => table.new_add(l, r).to_ast(),
-};
+    #[precedence(level = "3")] #[assoc(side="left")]
+    <l:Expr> "-" <r:Expr> => table.new_subtract(l, r).to_ast(),
+}
+
+Atom: IFunctionAST = {
+    <Variable> => <>.to_ast(),
+    <Number> => <>.to_ast(),
+    "(" <Expr> ")" => <>,
+    <Unary<"abs">> => table.new_absolute(<>).to_ast(),
+    <Unary<"ceil">> => table.new_ceil(<>).to_ast(),
+    <Unary<"floor">> => table.new_floor(<>).to_ast(),
+    <Unary<"sin">> => table.new_sine(<>).to_ast(),
+    <Unary<"cos">> => table.new_cosine(<>).to_ast(),
+    <Unary<"tan">> => table.new_tangent(<>).to_ast(),
+}
+
+Unary<T>: IFunctionAST = {
+    T "(" <Expr> ")" => <>
+}
 
 Variable: Variable = <r"[a-zA-Zα-ωΑ-Ω]+(_([a-zA-Zα-ωΑ-Ω0-9]|(\{[a-zA-Zα-ωΑ-Ω0-9]*\})))?"> => {
     let gcstr = table.new_string(<>);

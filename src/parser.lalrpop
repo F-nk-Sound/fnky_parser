@@ -40,7 +40,7 @@ Unary<T>: IFunctionAST = {
     T "(" <Expr> ")" => <>
 }
 
-Variable: Variable = <r"[a-zA-Zα-ωΑ-Ω]+(_[a-zA-Zα-ωΑ-Ω0-9]+)?"> => {
+Variable: Variable = <r"[a-zA-Zα-ωΑ-Ω](_[a-zA-Zα-ωΑ-Ω0-9]+)?"> => {
     let gcstr = table.new_string(<>);
     table.new_variable(gcstr)
 };

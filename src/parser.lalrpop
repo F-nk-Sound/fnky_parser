@@ -25,6 +25,8 @@ Expr: IFunctionAST = {
 }
 
 Atom: IFunctionAST = {
+    "pi" => table.new_number(std::f64::consts::PI).to_ast(),
+    "e" => table.new_number(std::f64::consts::E).to_ast(),
     <Variable> => <>.to_ast(),
     <Number> => <>.to_ast(),
     "(" <Expr> ")" => <>,

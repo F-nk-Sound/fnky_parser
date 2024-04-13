@@ -214,4 +214,18 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn parse_special_constants() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "pi + e");
+        assert!(
+            result.is_ok(),
+            "{}",
+            match result {
+                Ok(_) => panic!(),
+                Err(err) => err,
+            }
+        )
+    }
 }

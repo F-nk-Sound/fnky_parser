@@ -95,10 +95,13 @@ decl_gc_handle!(
     Ceil/ceil(inner: IFunctionAST),
     Cosine/cosine(inner: IFunctionAST),
     Divide/divide(lhs: IFunctionAST, rhs: IFunctionAST),
+    E/e(),
     Exponent/exponent(base: IFunctionAST, power: IFunctionAST),
     Floor/floor(inner: IFunctionAST),
+    Modulo/modulo(lhs: IFunctionAST, rhs: IFunctionAST),
     Multiply/multiply(lhs: IFunctionAST, rhs: IFunctionAST),
     Number/number(value: f64),
+    Pi/pi(),
     Sine/sine(inner: IFunctionAST),
     Subtract/subtract(lhs: IFunctionAST, rhs: IFunctionAST),
     Tangent/tangent(inner: IFunctionAST),
@@ -168,7 +171,10 @@ pub unsafe extern "C" fn fnky_parse(
 
 #[cfg(test)]
 mod tests {
-    use crate::{parser, AbsoluteData, AddData, CtorTable, DivideData, ExponentData, FloorData, MockAllocator, MultiplyData, NumberData, SubtractData, VariableData};
+    use crate::{
+        parser, AbsoluteData, AddData, CtorTable, DivideData, EData, ExponentData, FloorData,
+        MockAllocator, ModuloData, MultiplyData, NumberData, PiData, SubtractData, VariableData,
+    };
 
     #[test]
     fn parse_variable() {
@@ -183,8 +189,10 @@ mod tests {
     #[test]
     fn parse_add() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "a_1 + b_xy + 34").unwrap();
-        
+        let result = parser::FunctionParser::new()
+            .parse(&table, "a_1 + b_xy + 34")
+            .unwrap();
+
         let AddData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // (a_1 + b_xy) + 34
         let AddData(lhs, rhs2) = MockAllocator::get(lhs.0).unwrap(); // a_1 + b_xy
         let VariableData(_) = MockAllocator::get(lhs.0).unwrap(); // a_1
@@ -195,8 +203,10 @@ mod tests {
     #[test]
     fn parse_complex_arith() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "(5t + 4)/4 + (4t * 3)/3").unwrap();
-        
+        let result = parser::FunctionParser::new()
+            .parse(&table, "(5t + 4)/4 + (4t * 3)/3")
+            .unwrap();
+
         let AddData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // (5t + 4)/4 + (4t * 3)/3
         let DivideData(lhs, rhs2) = MockAllocator::get(lhs.0).unwrap(); // (5t + 4)/4
         let AddData(lhs, rhs3) = MockAllocator::get(lhs.0).unwrap(); // 5t + 4
@@ -217,8 +227,10 @@ mod tests {
     #[test]
     fn parse_ambiguous_abs() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "abs(1)abs(1)").unwrap();
-        
+        let result = parser::FunctionParser::new()
+            .parse(&table, "abs(1)abs(1)")
+            .unwrap();
+
         let MultiplyData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // abs(1) * abs(1)
         let AbsoluteData(inner) = MockAllocator::get(lhs.0).unwrap(); // abs(1)
         let NumberData(_) = MockAllocator::get(inner.0).unwrap(); // 1
@@ -229,8 +241,10 @@ mod tests {
     #[test]
     fn parse_square_wave() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "4floor(t) - 2floor(2t) + 1").unwrap();
-        
+        let result = parser::FunctionParser::new()
+            .parse(&table, "4floor(t) - 2floor(2t) + 1")
+            .unwrap();
+
         let AddData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 4floor(t) - 2floor(2t) + 1
         let SubtractData(lhs, rhs2) = MockAllocator::get(lhs.0).unwrap(); // 4floor(t) - 2floor(2t)
         let MultiplyData(lhs, rhs3) = MockAllocator::get(lhs.0).unwrap(); // 4floor(t)
@@ -249,8 +263,10 @@ mod tests {
     #[test]
     fn parse_polynomial() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "5x^2 + 3x - 1").unwrap();
-        
+        let result = parser::FunctionParser::new()
+            .parse(&table, "5x^2 + 3x - 1")
+            .unwrap();
+
         let SubtractData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 5x^2 + 3x - 1
         let AddData(lhs, rhs2) = MockAllocator::get(lhs.0).unwrap(); // 5x^2 + 3x
         let MultiplyData(lhs, rhs3) = MockAllocator::get(lhs.0).unwrap(); // 5x^2
@@ -267,10 +283,24 @@ mod tests {
     #[test]
     fn parse_special_constants() {
         let table = CtorTable::mock_table();
-        let result = parser::FunctionParser::new().parse(&table, "pi + e").unwrap();
-        
+        let result = parser::FunctionParser::new()
+            .parse(&table, "pi + e")
+            .unwrap();
+
         let AddData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // pi + e
-        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // pi
-        let NumberData(_) = MockAllocator::get(rhs.0).unwrap(); // e
+        let PiData() = MockAllocator::get(lhs.0).unwrap(); // pi
+        let EData() = MockAllocator::get(rhs.0).unwrap(); // e
+    }
+
+    #[test]
+    fn parse_modulo() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new()
+            .parse(&table, "27 % 6")
+            .unwrap();
+
+        let ModuloData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 27 % 6
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 27
+        let NumberData(_) = MockAllocator::get(rhs.0).unwrap(); // 6
     }
 }

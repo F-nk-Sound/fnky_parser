@@ -17,6 +17,8 @@ Expr: IFunctionAST = {
     <l:Expr> "*" <r:Expr> => table.new_multiply(l, r).to_ast(),
     #[precedence(level = "2")] #[assoc(side="left")]
     <l:Expr> "/" <r:Expr> => table.new_divide(l, r).to_ast(),
+    #[precedence(level = "2")] #[assoc(side="left")]
+    <l:Expr> "%" <r:Expr> => table.new_modulo(l, r).to_ast(),
 
     #[precedence(level = "3")] #[assoc(side="left")]
     <l:Expr> "+" <r:Expr> => table.new_add(l, r).to_ast(),
@@ -25,8 +27,8 @@ Expr: IFunctionAST = {
 }
 
 Atom: IFunctionAST = {
-    "pi" => table.new_number(std::f64::consts::PI).to_ast(),
-    "e" => table.new_number(std::f64::consts::E).to_ast(),
+    "pi" => table.new_pi().to_ast(),
+    "e" => table.new_e().to_ast(),
     <Variable> => <>.to_ast(),
     <Number> => <>.to_ast(),
     "(" <Expr> ")" => <>,

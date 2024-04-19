@@ -303,4 +303,18 @@ mod tests {
         let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 27
         let NumberData(_) = MockAllocator::get(rhs.0).unwrap(); // 6
     }
+
+    #[test]
+    fn parse_complex_modulo() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new()
+            .parse(&table, "27 % 2t")
+            .unwrap();
+
+        let ModuloData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 27 % 6
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 27
+        let MultiplyData(lhs, rhs) = MockAllocator::get(rhs.0).unwrap(); // 2t
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 2
+        let VariableData(_) = MockAllocator::get(rhs.0).unwrap(); // t
+    }
 }

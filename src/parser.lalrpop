@@ -13,16 +13,17 @@ Expr: IFunctionAST = {
 
     #[precedence(level = "2")] #[assoc(side = "left")]
     <l:Expr> <r:Expr> => table.new_multiply(l, r).to_ast(),
-    #[precedence(level = "2")] #[assoc(side="left")]
+    
+    #[precedence(level = "3")] #[assoc(side="left")]
     <l:Expr> "*" <r:Expr> => table.new_multiply(l, r).to_ast(),
-    #[precedence(level = "2")] #[assoc(side="left")]
+    #[precedence(level = "3")] #[assoc(side="left")]
     <l:Expr> "/" <r:Expr> => table.new_divide(l, r).to_ast(),
-    #[precedence(level = "2")] #[assoc(side="left")]
+    #[precedence(level = "3")] #[assoc(side="left")]
     <l:Expr> "%" <r:Expr> => table.new_modulo(l, r).to_ast(),
 
-    #[precedence(level = "3")] #[assoc(side="left")]
+    #[precedence(level = "4")] #[assoc(side="left")]
     <l:Expr> "+" <r:Expr> => table.new_add(l, r).to_ast(),
-    #[precedence(level = "3")] #[assoc(side="left")]
+    #[precedence(level = "4")] #[assoc(side="left")]
     <l:Expr> "-" <r:Expr> => table.new_subtract(l, r).to_ast(),
 }
 

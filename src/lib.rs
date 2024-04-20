@@ -98,6 +98,7 @@ decl_gc_handle!(
     E/e(),
     Exponent/exponent(base: IFunctionAST, power: IFunctionAST),
     Floor/floor(inner: IFunctionAST),
+    Log/log(base: IFunctionAST, antilog: IFunctionAST),
     Modulo/modulo(lhs: IFunctionAST, rhs: IFunctionAST),
     Multiply/multiply(lhs: IFunctionAST, rhs: IFunctionAST),
     Negation/negation(inner: IFunctionAST),
@@ -173,9 +174,7 @@ pub unsafe extern "C" fn fnky_parse(
 #[cfg(test)]
 mod tests {
     use crate::{
-        parser, AbsoluteData, AddData, CtorTable, DivideData, EData, ExponentData, FloorData,
-        MockAllocator, ModuloData, MultiplyData, NegationData, NumberData, PiData, SubtractData,
-        VariableData,
+        parser, AbsoluteData, AddData, CtorTable, DivideData, EData, ExponentData, FloorData, LogData, MockAllocator, ModuloData, MultiplyData, NegationData, NumberData, PiData, SubtractData, VariableData
     };
 
     #[test]
@@ -392,5 +391,17 @@ mod tests {
         assert!(parser::FunctionParser::new()
             .parse(&table, "t^2 3")
             .is_err());
+    }
+
+    #[test]
+    fn parse_log() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "5log(e, 27)").unwrap();
+
+        let MultiplyData(lhs, rhs) = MockAllocator::get(result.0).unwrap();
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap();
+        let LogData(base, antilog) = MockAllocator::get(rhs.0).unwrap();
+        let EData() = MockAllocator::get(base.0).unwrap();
+        let NumberData(_) = MockAllocator::get(antilog.0).unwrap();
     }
 }

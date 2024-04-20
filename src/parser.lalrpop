@@ -53,6 +53,7 @@ FlatMulTargetAtom: IFunctionAST = {
     <Unary<"sin">> => table.new_sine(<>).to_ast(),
     <Unary<"cos">> => table.new_cosine(<>).to_ast(),
     <Unary<"tan">> => table.new_tangent(<>).to_ast(),
+    "log" "(" <b:Expr> "," <anti:Expr> ")" => table.new_log(b, anti).to_ast(),
 }
 
 Unary<T>: IFunctionAST = {

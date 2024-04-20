@@ -5,33 +5,47 @@ grammar(table: &CtorTable);
 pub Function: IFunctionAST = Expr;
 
 Expr: IFunctionAST = {
-    #[precedence(level = "0")]
-    Atom,
+    <Term> => <>,
+    <l:Expr> "+" <r:Term> => table.new_add(l, r).to_ast(),
+    <l:Expr> "-" <r:Term> => table.new_subtract(l, r).to_ast(),
+}
 
-    #[precedence(level = "1")] #[assoc(side = "right")]
-    <b:Expr> "^" <p:Expr> => table.new_exponent(b, p).to_ast(),
+Term: IFunctionAST = {
+    <FlatMul> => <>,
+    <l:Term> "*" <r:FlatMul> => table.new_multiply(l, r).to_ast(),
+    <l:Term> "/" <r:FlatMul> => table.new_divide(l, r).to_ast(),
+    <l:Term> "%" <r:FlatMul> => table.new_modulo(l, r).to_ast(),
+}
 
-    #[precedence(level = "2")] #[assoc(side = "left")]
-    <l:Expr> <r:Expr> => table.new_multiply(l, r).to_ast(),
-    
-    #[precedence(level = "3")] #[assoc(side="left")]
-    <l:Expr> "*" <r:Expr> => table.new_multiply(l, r).to_ast(),
-    #[precedence(level = "3")] #[assoc(side="left")]
-    <l:Expr> "/" <r:Expr> => table.new_divide(l, r).to_ast(),
-    #[precedence(level = "3")] #[assoc(side="left")]
-    <l:Expr> "%" <r:Expr> => table.new_modulo(l, r).to_ast(),
+FlatMul: IFunctionAST = {
+    <Power> => <>,
+    <l:FlatMul> <r:FlatMulTarget> => table.new_multiply(l, r).to_ast(),
+}
 
-    #[precedence(level = "4")] #[assoc(side="left")]
-    <l:Expr> "+" <r:Expr> => table.new_add(l, r).to_ast(),
-    #[precedence(level = "4")] #[assoc(side="left")]
-    <l:Expr> "-" <r:Expr> => table.new_subtract(l, r).to_ast(),
+FlatMulTarget: IFunctionAST = {
+    <FlatMulTargetPower> => <>,
+}
+
+FlatMulTargetPower: IFunctionAST = {
+    <FlatMulTargetAtom> => <>,
+    <b:FlatMulTargetAtom> "^" <p:Power> => table.new_exponent(b, p).to_ast(),
+}
+
+Power: IFunctionAST = {
+    <Atom> => <>,
+    <b:Atom> "^" <p:Power> => table.new_exponent(b, p).to_ast(),
 }
 
 Atom: IFunctionAST = {
+    <FlatMulTargetAtom> => <>,
+    <Number> => <>.to_ast(),
+    "-" <Atom> => table.new_negation(<>).to_ast(),
+}
+
+FlatMulTargetAtom: IFunctionAST = {
     "pi" => table.new_pi().to_ast(),
     "e" => table.new_e().to_ast(),
     <Variable> => <>.to_ast(),
-    <Number> => <>.to_ast(),
     "(" <Expr> ")" => <>,
     <Unary<"abs">> => table.new_absolute(<>).to_ast(),
     <Unary<"ceil">> => table.new_ceil(<>).to_ast(),
@@ -50,4 +64,4 @@ Variable: Variable = <r"[a-zA-Zα-ωΑ-Ω](_[a-zA-Zα-ωΑ-Ω0-9]+)?"> => {
     table.new_variable(gcstr)
 };
 
-Number: Number = <r"-?[0-9]+(\.[0-9]+)?"> => table.new_number(<>.parse().unwrap());
+Number: Number = <r"[0-9]+(\.[0-9]+)?"> => table.new_number(<>.parse().unwrap());

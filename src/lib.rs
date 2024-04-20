@@ -100,6 +100,7 @@ decl_gc_handle!(
     Floor/floor(inner: IFunctionAST),
     Modulo/modulo(lhs: IFunctionAST, rhs: IFunctionAST),
     Multiply/multiply(lhs: IFunctionAST, rhs: IFunctionAST),
+    Negation/negation(inner: IFunctionAST),
     Number/number(value: f64),
     Pi/pi(),
     Sine/sine(inner: IFunctionAST),
@@ -173,7 +174,8 @@ pub unsafe extern "C" fn fnky_parse(
 mod tests {
     use crate::{
         parser, AbsoluteData, AddData, CtorTable, DivideData, EData, ExponentData, FloorData,
-        MockAllocator, ModuloData, MultiplyData, NumberData, PiData, SubtractData, VariableData,
+        MockAllocator, ModuloData, MultiplyData, NegationData, NumberData, PiData, SubtractData,
+        VariableData,
     };
 
     #[test]
@@ -261,6 +263,56 @@ mod tests {
     }
 
     #[test]
+    fn parse_square_wave_no_spaces() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new()
+            .parse(&table, "4floor(t)-2floor(2t)+1")
+            .unwrap();
+
+        let AddData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 4floor(t) - 2floor(2t) + 1
+        let SubtractData(lhs, rhs2) = MockAllocator::get(lhs.0).unwrap(); // 4floor(t) - 2floor(2t)
+        let MultiplyData(lhs, rhs3) = MockAllocator::get(lhs.0).unwrap(); // 4floor(t)
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 4
+        let FloorData(inner) = MockAllocator::get(rhs3.0).unwrap(); // floor(t)
+        let VariableData(_) = MockAllocator::get(inner.0).unwrap(); // t
+        let MultiplyData(lhs, rhs2) = MockAllocator::get(rhs2.0).unwrap(); // 2floor(2t);
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 2
+        let FloorData(inner) = MockAllocator::get(rhs2.0).unwrap(); // floor(2t)
+        let MultiplyData(lhs, rhs2) = MockAllocator::get(inner.0).unwrap(); // 2t
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 2
+        let VariableData(_) = MockAllocator::get(rhs2.0).unwrap(); // t
+        let NumberData(_) = MockAllocator::get(rhs.0).unwrap(); // 1
+    }
+
+    #[test]
+    fn parse_exponent() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "5x^2").unwrap();
+
+        let MultiplyData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 5x^2
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 5
+        let ExponentData(base, power) = MockAllocator::get(rhs.0).unwrap(); // x^2
+        let VariableData(_) = MockAllocator::get(base.0).unwrap(); // x
+        let NumberData(_) = MockAllocator::get(power.0).unwrap(); // 2
+    }
+
+    #[test]
+    fn parse_double_exponent() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new()
+            .parse(&table, "5x^2^2")
+            .unwrap();
+
+        let MultiplyData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // 5x^2
+        let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 5
+        let ExponentData(base, power) = MockAllocator::get(rhs.0).unwrap(); // x^(2^2)
+        let VariableData(_) = MockAllocator::get(base.0).unwrap(); // x
+        let ExponentData(base, power) = MockAllocator::get(power.0).unwrap(); // 2^2
+        let NumberData(_) = MockAllocator::get(base.0).unwrap(); // 2
+        let NumberData(_) = MockAllocator::get(power.0).unwrap(); // 2
+    }
+
+    #[test]
     fn parse_polynomial() {
         let table = CtorTable::mock_table();
         let result = parser::FunctionParser::new()
@@ -316,5 +368,29 @@ mod tests {
         let MultiplyData(lhs, rhs) = MockAllocator::get(rhs.0).unwrap(); // 2t
         let NumberData(_) = MockAllocator::get(lhs.0).unwrap(); // 2
         let VariableData(_) = MockAllocator::get(rhs.0).unwrap(); // t
+    }
+
+    #[test]
+    fn parse_unary_neg() {
+        let table = CtorTable::mock_table();
+        let result = parser::FunctionParser::new().parse(&table, "-tab").unwrap();
+
+        let MultiplyData(lhs, rhs) = MockAllocator::get(result.0).unwrap(); // (-ta)b
+        let VariableData(_) = MockAllocator::get(rhs.0).unwrap(); // b
+        let MultiplyData(lhs, rhs) = MockAllocator::get(lhs.0).unwrap(); // -ta
+        let VariableData(_) = MockAllocator::get(rhs.0).unwrap(); // a
+        let NegationData(inner) = MockAllocator::get(lhs.0).unwrap(); // -t
+        let VariableData(_) = MockAllocator::get(inner.0).unwrap(); // t
+    }
+
+    #[test]
+    fn reject_nonsense() {
+        let table = CtorTable::mock_table();
+        assert!(parser::FunctionParser::new()
+            .parse(&table, "5 1 + 2")
+            .is_err());
+        assert!(parser::FunctionParser::new()
+            .parse(&table, "t^2 3")
+            .is_err());
     }
 }
